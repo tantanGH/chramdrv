@@ -32,11 +32,11 @@ X68000Z EAK 1.1.3 の状況では HDDイメージに対応していないので�
 このプログラムを使うことで、環境によらずに最初のRAMDISKドライブを見つけてそこにカレントドライブを移すことができるので、そこにファイルを展開すれば良いことになります。
 
 
-`CONFIG.SYS`内で純正`RAMDISK.SYS`を使って4MBのRAMDISKを定義する:
+`CONFIG.SYS`内で純正`RAMDISK.SYS`を使って4MBのRAMDISKを定義する例:
 
         DEVICE = \SYS\RAMDISK.SYS #M4096
 
-`AUTOEXEC.BAT`内でRAMDISKドライブにカレントドライブを移し、そこでFDから圧縮ファイルを展開します。
+`AUTOEXEC.BAT`内でRAMDISKドライブにカレントドライブを移し、そこでFDから圧縮ファイルを展開する例:
 
         CHRAMDRV.X
         if NOT EXITCODE 0 GOTO ERROR
