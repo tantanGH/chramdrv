@@ -8,12 +8,12 @@ int32_t main(int32_t argc, uint8_t* argv[]) {
 
   struct DPBPTR dpb;
 
-  for (int16_t i = 1; i <= 26; i++) {
-    if (GETDPB(i, &dpb) >= 0) {
-      //printf("drive %d ... id = %d\n", i, dpb.id);
+  for (int16_t i = 0; i < 26; i++) {
+    if (GETDPB(i + 1, &dpb) >= 0) {
+      //printf("drive %d ... id = %d\n", i + 1, dpb.id);
       if (dpb.id == 249) {
-        CHGDRV( i - 1 );
-        printf("RAMDISK Drive ... %c:\n", 'A' + i - 1);
+        CHGDRV(i);
+        printf("RAMDISK Drive ... %c:\n", 'A' + i);
         rc = 0;
         break;
       }
