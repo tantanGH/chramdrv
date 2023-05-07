@@ -13,7 +13,7 @@ endif
 # 各種コマンド短縮名
 CXX = ${XDEV68K_DIR}/m68k-toolchain/bin/m68k-elf-g++
 CC = ${XDEV68K_DIR}/m68k-toolchain/bin/m68k-elf-gcc
-GAS2HAS = perl ${XDEV68K_DIR}/util/x68k_gas2has.pl -cpu 68060 -inc doscall.inc -inc iocscall.inc
+GAS2HAS = perl ${XDEV68K_DIR}/util/x68k_gas2has.pl -cpu 68000 -inc doscall.inc -inc iocscall.inc
 RUN68 = ${XDEV68K_DIR}/run68/run68
 HAS = $(RUN68) ${XDEV68K_DIR}/x68k_bin/HAS060.X
 HLK = $(RUN68) ${XDEV68K_DIR}/x68k_bin/hlk301.x
@@ -30,16 +30,19 @@ PACKAGE_FILE = ../CHRAMDRV.ZIP
 # ヘッダ検索パス
 INCLUDE_FLAGS = -I${XDEV68K_DIR}/include/xc -I${XDEV68K_DIR}/include/xdev68k
 
-
 # コンパイルフラグ
-COMMON_FLAGS = -m68000 -Os $(INCLUDE_FLAGS)
-CFLAGS = $(COMMON_FLAGS) -fno-conserve-stack -Wno-builtin-declaration-mismatch -fcall-used-d2 -finput-charset=cp932 -fexec-charset=cp932 -fcall-used-a2 -fverbose-asm
+COMMON_FLAGS = -m68000 -Os $(INCLUDE_FLAGS) -z-stack=8192
+CFLAGS = $(COMMON_FLAGS) -Wno-builtin-declaration-mismatch -fcall-used-d2 -fcall-used-a2 \
+    -fexec-charset=cp932 -fverbose-asm -fno-defer-pop
 
 # *.c ソースファイル
 C_SRCS = chramdrv.c
 
 # *.s ソースファイル
-ASM_SRCS = 
+ASM_SRCS =
+
+# *.h source files
+HEADER_SRCS =
 
 # リンク対象のライブラリファイル
 LIBS =\
@@ -47,7 +50,7 @@ LIBS =\
 	${XDEV68K_DIR}/lib/xc/DOSLIB.L \
 	${XDEV68K_DIR}/lib/xc/IOCSLIB.L \
 	${XDEV68K_DIR}/lib/xc/FLOATFNC.L \
-	${XDEV68K_DIR}/lib/m68k_elf/m68000/libgcc.a \
+	${XDEV68K_DIR}/lib/m68k_elf/m68000/libgcc.a
 
 # 中間ファイル生成用ディレクトリ
 INTERMEDIATE_DIR = _build
@@ -60,7 +63,7 @@ OBJS =	$(addprefix $(INTERMEDIATE_DIR)/,$(patsubst %.c,%.o,$(C_SRCS))) \
 HLK_LINK_LIST = $(INTERMEDIATE_DIR)/_lk_list.tmp
 
 # デフォルトのターゲット
-all : $(TARGET_FILE)
+all : ${INTERMEDIATE_DIR}/$(TARGET_FILE)
 
 # 中間生成物の削除
 clean : 
@@ -71,7 +74,7 @@ clean :
 #	HLK に長いパス文字を与えることは難しい。
 #	回避策としてリンク対象ファイルを $(INTERMEDIATE_DIR) 以下にコピーし、
 #	短い相対パスを用いてリンクを実行させる。
-$(TARGET_FILE) : $(OBJS)
+${INTERMEDIATE_DIR}/$(TARGET_FILE) : $(OBJS)
 	mkdir -p $(INTERMEDIATE_DIR)
 	rm -f $(HLK_LINK_LIST)
 	@for FILENAME in $(OBJS); do\
@@ -81,10 +84,11 @@ $(TARGET_FILE) : $(OBJS)
 		cp $$FILENAME $(INTERMEDIATE_DIR)/`basename $$FILENAME`; \
 		echo $(INTERMEDIATE_DIR)/`basename $$FILENAME` >> $(HLK_LINK_LIST); \
         done
-	$(HLK) -i $(HLK_LINK_LIST) -o $(TARGET_FILE)
+	$(HLK) -i $(HLK_LINK_LIST) -o ${INTERMEDIATE_DIR}/$(TARGET_FILE)
+#	rm -f tmp*.\$$\$$\$$
 
 # *.c ソースのコンパイル
-$(INTERMEDIATE_DIR)/%.o : %.c makefile
+$(INTERMEDIATE_DIR)/%.o : %.c Makefile $(HEADER_SRCS)
 	mkdir -p $(INTERMEDIATE_DIR)
 	$(CC) -S $(CFLAGS) -o $(INTERMEDIATE_DIR)/$*.m68k-gas.s $<
 	$(GAS2HAS) -i $(INTERMEDIATE_DIR)/$*.m68k-gas.s -o $(INTERMEDIATE_DIR)/$*.s
@@ -92,10 +96,9 @@ $(INTERMEDIATE_DIR)/%.o : %.c makefile
 	$(HAS) -e -u -w0 $(INCLUDE_FLAGS) $(INTERMEDIATE_DIR)/$*.s -o $(INTERMEDIATE_DIR)/$*.o
 
 # *.s ソースのアセンブル
-$(INTERMEDIATE_DIR)/%.o : %.s makefile
+$(INTERMEDIATE_DIR)/%.o : %.s Makefile
 	mkdir -p $(INTERMEDIATE_DIR)
 	$(HAS) -e -u -w0 $(INCLUDE_FLAGS) $*.s -o $(INTERMEDIATE_DIR)/$*.o
-
 
 package:
 	zip -j ${PACKAGE_FILE} ${INTERMEDIATE_DIR}/${TARGET_FILE} ${DOCUMENT_FILE} 
